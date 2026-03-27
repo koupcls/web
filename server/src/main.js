@@ -2,13 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+const { errorMiddleware, notFoundMiddleware, authMiddleware } = require('./middleware/index.js'); 
+const routes = require('./routes');
+
+const router = express.Router();
+
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+    credentials: true
+}));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req, res) => {
+app.use('/api', routes);
+
+app.post('/health', (req, res) => {
+    console.log('✅ HIT /health endpoint!'); // ← Появится в консоли сервера?
     res.status(200).json({ 
         status: 'OK', 
         message: 'Server is running',
@@ -16,4 +27,8 @@ app.get('/health', (req, res) => {
     });
 });
 
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => { console.log(`Server started on port ${PORT}`);});
