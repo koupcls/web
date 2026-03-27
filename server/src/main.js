@@ -18,15 +18,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', routes);
 
-app.post('/health', (req, res) => {
-    console.log('✅ HIT /health endpoint!'); // ← Появится в консоли сервера?
-    res.status(200).json({ 
-        status: 'OK', 
-        message: 'Server is running',
-        timestamp: new Date().toISOString()
-    });
-});
-
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
