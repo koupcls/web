@@ -1,11 +1,8 @@
 const postService = require('../services/PostService');
-const { AppError } = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
 class PostController {
-    /**
-     * POST /api/posts - Создать пост
-     */
+
     create = catchAsync(async (req, res) => {
         const post = await postService.create(req.user.uuid, req.body);
         
@@ -16,9 +13,7 @@ class PostController {
         });
     });
     
-    /**
-     * GET /api/posts - Список постов
-     */
+
     getList = catchAsync(async (req, res) => {
         const { page, limit, tag, author, search } = req.query;
         
@@ -40,17 +35,9 @@ class PostController {
         });
     });
     
-    /**
-     * GET /api/posts/:id - Получить пост
-     */
+
     getById = catchAsync(async (req, res) => {
-        const post = await postService.getById(
-            req.params.id,
-            req.user?.uuid
-        );
-        
-        // Увеличиваем счётчик просмотров (асинхронно)
-        // postService.incrementViews(req.params.id).catch(console.error);
+        const post = await postService.getById(req.params.id, req.user?.uuid);
         
         res.json({
             success: true,
@@ -58,15 +45,8 @@ class PostController {
         });
     });
     
-    /**
-     * PATCH /api/posts/:id - Обновить пост
-     */
     update = catchAsync(async (req, res) => {
-        const post = await postService.update(
-            req.params.id,
-            req.user.uuid,
-            req.body
-        );
+        const post = await postService.update(req.params.id, req.user.uuid, req.body);
         
         res.json({
             success: true,
@@ -75,14 +55,8 @@ class PostController {
         });
     });
     
-    /**
-     * DELETE /api/posts/:id - Удалить пост
-     */
     delete = catchAsync(async (req, res) => {
-        await postService.delete(
-            req.params.id,
-            req.user.uuid
-        );
+        await postService.delete(req.params.id, req.user.uuid);
         
         res.json({
             success: true,
@@ -90,14 +64,8 @@ class PostController {
         });
     });
 
-    /**
-     * DELETE /api/posts/:id/hard - Удалить пост безвозвратно
-     */
     hardDelete = catchAsync(async (req, res) => {
-        await postService.hardDelete(
-            req.params.id,
-            req.user.uuid
-        );
+        await postService.hardDelete(req.params.id, req.user.uuid);
         
         res.json({
             success: true,
@@ -105,14 +73,8 @@ class PostController {
         });
     });
     
-    /**
-     * POST /api/posts/:id/publish - Опубликовать пост
-     */
     publish = catchAsync(async (req, res) => {
-        const post = await postService.publish(
-            req.params.id,
-            req.user.uuid
-        );
+        const post = await postService.publish(req.params.id, req.user.uuid);
         
         res.json({
             success: true,
