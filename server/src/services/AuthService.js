@@ -12,7 +12,7 @@ class AuthService {
         const {email, password} = creditials;
 
         if (!email || !password) {
-            throw new AppError('Email and password are requaried', 'missing_data', 400);
+            throw new AppError('Необходимы почта и пароль', 'missing_data', 400);
         }
 
         const { data: {user}, error: regError } = await this.supabase.auth.signUp({
@@ -29,15 +29,16 @@ class AuthService {
     }
 
     async verifyOtpToken(creditials) {
-        const { email, token } = creditials;
 
-        if (!email || !token) {
-            throw new AppError("Email and token are required", 400);
+        const { email, code } = creditials;
+
+        if (!email || !code) {
+            throw new AppError("Необходимы почта и код", 400);
         }
 
         const {data: {user, session}, error} = await this.supabase.auth.verifyOtp({
             email: email,
-            token: token,
+            token: code,
             type: 'email'
         });
 
@@ -68,7 +69,7 @@ class AuthService {
         const {email} = creditials;
 
         if (!email) {
-            throw new AppError("Email is required", 'missing_data', 400);
+            throw new AppError("Необходима почта", 'missing_data', 400);
         }
 
         const {error} = await this.supabase.auth.resend({
@@ -86,7 +87,7 @@ class AuthService {
 
     async refreshAccessToken(refreshToken) {
         if (!refreshToken) {
-            throw new AppError('Refresh token is required', 'missing_refresh_token', 400);
+            throw new AppError('Необходим refresh токен', 'missing_refresh_token', 400);
         }
 
         const {  session, error } = await supabase.auth.refreshSession({
@@ -94,7 +95,7 @@ class AuthService {
         });
 
         if (error || !session) {
-            throw new AppError('Invalid or expired refresh token', 'invalid_refresh_token', 401);
+            throw new AppError('Неправильный или протухший токен', 'invalid_refresh_token', 401);
         }
 
         const {  user: profile, error: profileError } = await supabase
@@ -105,12 +106,15 @@ class AuthService {
             .maybeSingle();
 
         if (profileError || !profile) {
-            throw new AppError('User profile not found or deleted', 404);
+            throw new AppError('Пользователь не найден', 'not_found', 404);
         }
 
         if (!profile.is_active) {
-            throw new AppError('Account is deactivated', 403);
+            throw new AppError('Account is deactivated', 'accaout_deactivated', 403);
         }
+
+        console.log(profile);
+        console.log(session);
 
         return {
             accessToken: session.access_token,
@@ -178,7 +182,11 @@ class AuthService {
             throw new AppError("UserId is required", "missing_data", 400);
         }
         
-        const { data, error } = await this.supabase.from('users').select('*').eq('uuid', userId).is('deleted_at', null).single();
+        const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('uuid', userId)
+        .single();
 
         if (error || !data) {
             throw new AppError(error.message, error.code, 404);
@@ -222,51 +230,50 @@ class AuthService {
     }
 
 
-    async deleteProfile(userId, token, hard = false) {
-        if (!userId) {
-            throw new AppError('User ID is required', 'missing_data', 400);
+    async hardDelete(userID) {
+        if (!userID) {
+            throw new AppError('Необходим ID пользователя', 'missing_data', 400);
         }
 
-        if (hard) {
-            const { error } = await this.supabase
+        const { data: user, error } = await this.supabase
                 .from('users')
                 .delete()
-                .eq('uuid', userId);
+                .eq('uuid', userID)
+                .single()
 
-            if (error) {
-                throw new AppError('Failed to permanently delete user', error.code, 500);
-            }
-
-            const { error: supabaseError } = await this.supabase.auth.admin.deleteUser(userId);
-            if (supabaseError) {
-                throw new AppError(supabaseError.message, supabaseError.code, 500);
-            }
-
-            return {};
+        if (!user) {
+            throw new AppError('Пользователь с ID ' + userID + ' не найден', 'not_found', 404);
         }
-
-        return this.softDelete(userId, token);
-    }
-
-
-    async softDelete(userId, token) {
-
-        const { error } = await this.supabase
-            .from('users')
-            .update({ 
-                deleted_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('uuid', userId)
-            .is('deleted_at', 'null');
 
         if (error) {
-            throw new AppError('Failed to delete profile', error.code, 500);
+            throw new AppError('Не удалось удалить пользователя', 'delete_failed', 500);
         }
 
-        await this.logout(token);
+        const { error: supabaseError } = await this.supabase.auth.admin.deleteUser(userId);
+        if (supabaseError) {
+            throw new AppError(supabaseError.message, supabaseError.code, supabaseError.status);
+        }
+    }
 
-        return {};
+    async delete(userID) {
+        if (!userID) {
+            throw new AppError('Необходим ID пользователя', 'missing_data', 400);
+        }
+
+        const { data: user, error } = await this.supabase
+                .from('users')
+                .update({ 
+                    deleted_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .eq('uuid', userID)
+                .is('deleted_at', 'null')
+                .single();
+
+        if (error) {
+            console.log(error);
+            throw new AppError('Не удалось удалить пользователя', 'delete_failed', 500);
+        }
     }
 
 }

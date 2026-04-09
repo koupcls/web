@@ -8,13 +8,15 @@ router.post('/login', authController.login);
 router.post('/otp', authController.verifyOtpToken);
 router.post('/resend-email', authController.resendConfirmationEmail);
 router.post('/refresh', authController.refresh); 
-
 router.post('/logout', authenticate, authController.logout);
-router.get('/me', authenticate, authController.getUser);
-router.patch('/profile', authenticate, authController.updateProfile);
-router.delete('/delete', authenticate, authController.deleteProfile);
 
-router.delete('/hard-delete', authenticate, requireAdmin, authController.hardDeleteProfile);
+router.get('/user', authenticate, authController.getUser);
+router.patch('/user', authenticate, authController.updateProfile);
+router.get('/user/:id', authenticate, authController.getUser);
+router.patch('/user/:id', authenticate, requireAdmin, authController.updateProfile);
+router.delete('/user/:id', authenticate, authController.delete);
+router.delete('/user/:id/hard', authenticate, requireAdmin, authController.hardDelete);
+
 router.get('/users', authenticate, requireAdmin, authController.getAllUsers);
 
 module.exports = router;
