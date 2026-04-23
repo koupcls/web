@@ -6,15 +6,15 @@ const handleError = (err, res) => {
     return res.status(err.statusCode).json({
         success: false,
         message: err.message,
-        statusCode: err.statusCode,
-        errorCode: err.code
+        status_code: err.statusCode,
+        error_code: err.code
     });
 }
 
 const errorMiddleware = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.message = err.message || 'error';
-    err.code = err.code || 'error';
+    err.code = err.errorCode || 'error';
 
     return handleError(err, res);
 }

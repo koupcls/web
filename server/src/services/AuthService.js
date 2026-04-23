@@ -15,10 +15,21 @@ class AuthService {
             throw new AppError('Необходимы почта и пароль', 'missing_data', 400);
         }
 
+        const {data , error} = await this.supabase.from('users').select('*').eq('email', email).single();
+
+        if (data && data.is_verified === false) {
+            throw new AppError('Аккаунт ожидает верификации по коду', 'waiting_verification', 400);
+        }
+
+        if (data) {
+            throw new AppError('Аккаует уже существует', 'already_exists', 400);
+        }
+        
+
         const { data: {user}, error: regError } = await this.supabase.auth.signUp({
             email: email,
             password: password,
-            email_confirm: false
+            email_confirm: true
         });
 
         if (regError) {
@@ -28,7 +39,7 @@ class AuthService {
         return {email: user.email};
     }
 
-    async verifyOtpToken(creditials) {
+    async verifyOtpCode(creditials) {
 
         const { email, code } = creditials;
 
@@ -65,20 +76,21 @@ class AuthService {
     };
     }
 
-    async resendConfirmationEmail(creditials) {
-        const {email} = creditials;
+    async resendConfirmationEmail(email) {
 
         if (!email) {
             throw new AppError("Необходима почта", 'missing_data', 400);
         }
 
-        const {error} = await this.supabase.auth.resend({
+        console.log(email);
+
+        const {data, error} = await this.supabase.auth.resend({
             type: 'signup',
             email: email
         });
 
         if (error) {
-            throw new AppError(error.message, error.code, 401);
+            throw new AppError(error.message, error.code, 400);
         }
 
         return {};
@@ -129,19 +141,38 @@ class AuthService {
     }
 
     async login(creditials) {
-        const { email, password } = creditials;
 
-        if (!email || !password) {
-            throw new AppError('Email and password are requaried', 'missing_data', 400);
+        const { identity, password } = creditials;    
+
+        if (!identity || !password) {
+            throw new AppError('Identity and password are requaried', 'missing_data', 400);
         }        
 
-        const { data: {user, session}, error } = await this.supabase.auth.signInWithPassword({
-            email,
+        const { data: userByTag, error: e1 } = await this.supabase.from('users').select('email').eq('tag', identity).maybeSingle();
+
+        if (e1) throw new AppError('Ошибка при поиске пользователя', 'db_error', 500);
+
+        const { data: userByEmail, error: e2 } = await this.supabase
+        .from('users')
+        .select('email')
+        .eq('email', identity)
+        .maybeSingle();
+
+        if (e2) throw new AppError('Ошибка при поиске пользователя', 'db_error', 500);
+
+        const userData = userByTag ?? userByEmail;
+
+        if (!userData) {
+            throw new AppError(`Пользователь "${identity}" не найден!`, 'not_found', 404);
+        }
+
+        const { data: { user, session }, error: authError } = await this.supabase.auth.signInWithPassword({
+            email: userData.email,
             password
         });
 
-        if (error) {
-            throw new AppError(error.message, error.code, 400);
+        if (authError) {
+            throw new AppError(authError.message, authError.code, 400);
         }
 
         return {
@@ -235,21 +266,31 @@ class AuthService {
             throw new AppError('Необходим ID пользователя', 'missing_data', 400);
         }
 
-        const { data: user, error } = await this.supabase
+        const { data: user, error: selectError } = await this.supabase
+                .from('users')
+                .select('uuid')
+                .eq('uuid', userID)
+                .single()
+
+        if (!user || selectError) {
+            throw new AppError('Пользователь с ID ' + userID + ' не найден', 'not_found', 404);
+        }
+
+
+
+        const { error } = await this.supabase
                 .from('users')
                 .delete()
                 .eq('uuid', userID)
                 .single()
 
-        if (!user) {
-            throw new AppError('Пользователь с ID ' + userID + ' не найден', 'not_found', 404);
-        }
-
         if (error) {
+            console.log(error);
             throw new AppError('Не удалось удалить пользователя', 'delete_failed', 500);
+            
         }
 
-        const { error: supabaseError } = await this.supabase.auth.admin.deleteUser(userId);
+        const { error: supabaseError } = await this.supabase.auth.admin.deleteUser(userID);
         if (supabaseError) {
             throw new AppError(supabaseError.message, supabaseError.code, supabaseError.status);
         }
