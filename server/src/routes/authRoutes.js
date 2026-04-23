@@ -5,8 +5,8 @@ const {authenticate, requireAdmin, requireModerator} = require('../middleware/in
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
-router.post('/otp', authController.verifyOtpToken);
-router.post('/resend-email', authController.resendConfirmationEmail);
+router.post('/otp/', authController.verifyOtpCode);
+router.get('/resend-email/:email', authController.resendConfirmationEmail);
 router.post('/refresh', authController.refresh); 
 router.post('/logout', authenticate, authController.logout);
 
@@ -16,6 +16,7 @@ router.get('/user/:id', authenticate, authController.getUser);
 router.patch('/user/:id', authenticate, requireAdmin, authController.updateProfile);
 router.delete('/user/:id', authenticate, authController.delete);
 router.delete('/user/:id/hard', authenticate, requireAdmin, authController.hardDelete);
+router.delete('/user/:id/hard/admin', authController.hardDelete);
 
 router.get('/users', authenticate, requireAdmin, authController.getAllUsers);
 

@@ -13,3 +13,5 @@ target/
 .next/
 public/dist/
 ```
+postman
+.postman

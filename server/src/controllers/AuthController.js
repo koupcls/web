@@ -4,7 +4,9 @@ const catchAsync = require('../utils/catchAsync');
 class AuthController {
     
     register = catchAsync(async (req, res) => {
-        const email = await authService.register(req.body);
+        const {email} = await authService.register(req.body);
+
+        console.log("0");
 
         res.status(201).json({
             success: true,
@@ -15,8 +17,12 @@ class AuthController {
         });
     });
 
-    verifyOtpToken = catchAsync(async (req, res) => {
-        const {user,session} = await authService.verifyOtpToken(req.body);
+    verifyOtpCode = catchAsync(async (req, res) => {
+
+        console.log("verif");
+        console.log(req.body);
+
+        const {user,session} = await authService.verifyOtpCode(req.body);
 
         res.status(201).json({
             success: true,
@@ -29,7 +35,7 @@ class AuthController {
     })
 
     resendConfirmationEmail = catchAsync(async (req, res) => {
-        const {} = await authService.resendConfirmationEmail(req.body);
+        const {} = await authService.resendConfirmationEmail(req.params.email);
 
         res.status(201).json({
             success: true
